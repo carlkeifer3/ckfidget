@@ -342,7 +342,7 @@ def ckFidgetWin():
     pm.mel.eval( 'floatField -value $gckFidgetBump -min 0 -changeCommand "$gckFidgetBump = `floatField -q -v  masterBump`"  masterBump;' )
     pm.button( label = '<', command = 'ckFidgetBumpAllDwn( pm.getAttr("ckFidget_GRP.bumpBy"))')
     pm.button( label = '>', command = 'ckFidgetBumpAllUp( pm.getAttr("ckFidget_GRP.bumpBy"))')
-    pm.radioButtonGrp( label='Bump by:', labelArray2=['0.0', '%'], numberOfRadioButtons=2, sl=2, on1= 'pm.setAttr("ckFidget_GRP.bumpBy", False)', on2= 'pm.setAttr("ckFidget_GRP.bumpBy", True)')
+    pm.radioButtonGrp( label='Bump by:', labelArray2=['0.0', '%'], numberOfRadioButtons=2, sl=1, on1= 'pm.setAttr("ckFidget_GRP.bumpBy", False)', on2= 'pm.setAttr("ckFidget_GRP.bumpBy", True)')
     pm.setParent( '..' )
     pm.setParent( '..' )
     pm.frameLayout( label = "Fidget Attributes", borderStyle='in', collapsable=True )
