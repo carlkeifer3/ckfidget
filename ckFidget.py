@@ -20,13 +20,6 @@ import pymel.all as pm
 # I should create an initialize fidget function that can load persistent data from
 # a previous fidget session.
 
-# contains a list of  "object.attribute" that we will be working with
-ckFidgetList = []
-# contains a list of saved values for a single step
-ckFidgetSav = []
-# contains the value listed in the attribute when entered onto the list
-ckFidgetPrim = []
-
 # this is the amount by default that will be affecting the attributes
 pm.melGlobals.initVar( 'float','gckFidgetBump')
 pm.melGlobals['gckFidgetBump'] = 0.1
@@ -85,21 +78,6 @@ def ckFidgetInit():
         isFidget = pm.getAttr("ckFidget_GRP.ckIsFidget")
         if isFidget == True:
             print "Data Found!"
-            ckList = pm.getAttr("ckFidget_GRP.ckFidgetList")
-            ckList = ckList.split(";")
-            ckSav = pm.getAttr("ckFidget_GRP.ckFidgetSav")
-            ckSav = ckSav.split(";")
-            ckPrim = pm.getAttr("ckFidget_GRP.ckFidgetPrim")
-            ckPrim = ckPrim.split(";")
-            i = 0
-            while i < len(ckList)-1:
-                print "appending ckFidgetList with " + str(ckList[i])
-                ckFidgetList.append( ckList[i] )
-                ckFidgetSav.append( float(ckSav[i]) )
-                ckFidgetPrim.append( float(ckPrim[i]) )
-                i = i + 1
-            print ckFidgetSav
-            print ckFidgetPrim
             pm.setAttr("ckFidget_GRP.bumpBy", False)
     except:
         print "data not found initializing new ckFidget instance"
@@ -111,12 +89,11 @@ def ckFidgetInit():
         pm.addAttr( longName="ckFidgetBump", attributeType='float', keyable=False, defaultValue=0.1 )
 
         print "here is where I should ask about starting a new fidget"
+        # should pop up a dialog and ask the name of the new fidget
         pm.addAttr( longName="ckFidgetList", dataType='string', keyable=False )
         pm.addAttr( longName="ckFidgetSav", dataType='string', keyable=False )
-        pm.addAttr( longName="ckFidgetPrim", dataType='string', keyable=False )
         pm.setAttr( "ckFidget_GRP.ckFidgetList","" )
         pm.setAttr( "ckFidget_GRP.ckFidgetSav","" )
-        pm.setAttr( "ckFidget_GRP.ckFidgetPrim","" )
     ckFidgetWin()
 
 def ckAddFidget():
@@ -148,19 +125,8 @@ def ckAddFidget():
     print newVal
 
     # given that has worked  we will add the data to the lists
-    ckFidgetList.append( newAttr )
     ckAddToList( "ckFidget_GRP.ckFidgetList", newAttr)
-    ckFidgetSav.append( newVal )
-    ckAddToList( "ckFidget_GRP.ckFidgeSav", newVal)
-    ckFidgetPrim.append( newVal )
-    ckAddToList( "ckFidget_GRP.ckFidgePrim", newVal)
-
-    # printing the saved data as a check
-
-    #CK - I should clean this up it looks terrible and is not usefull for editing
-    print ckFidgetSav
-    print ckFidgetList
-
+    ckAddToList( "ckFidget_GRP.ckFidgetSav", newVal)
     # now issue the call to rebuild the interface
     ckFidgetWin()
 
@@ -211,146 +177,60 @@ def ckFidgetBump( fdgAttr, bumpDir):
     # store adjustment
     pm.setAttr( fdgAttr, fdgVal)
 
-def ckFidgetBumpDwn(bumpAttr, bumpBy):
+def ckSavRstZerAll( fdgOps ):
     """
-        ckFidgetBumpDwn( bumpAttr, bumpBy )
+        ckSavRstZerAll( fdgAttr, fdgOps )
 
-        description: adjusts single attribute down ( subtracts from )
-            by percentage or increment
+        description: saves, restores, or zeros all attributes listed in fidget set.
 
         inputs:
-            bumpBy: indicates percentage or increment
+            fdgOps: the operation to complete, save or restore
 
-            bumpAttr: the attribute to be adjusted
+        outputs: None
+    """
+    print fdgOps + "ing all fidgets in dataset"
+    ckList = ckGetList("ckFidget_GRP.ckFidgetList")
+    for fdg in ckList:
+        if fdgOps == "save":
+            ckSavRst(fdg, fdgOps)
+        elif fdgOps == "restore":
+            ckSavRst(fdg, fdgOps)
+        else:
+            pm.setAttr(fdg, 0)
 
-        outputs: adjusts attribute named in bumpAttr
+def ckSavRst(fdgAttr, fdgOps ):
+    """
+        ckSavRst()
+
+        description: saves or restores values from fidget data
+
+        inputs:
+            fdgAttr: the object.attribute pair we will be working with
+
+            fdgOps: the operation to complete, save or restore
+
+        outputs: None
 
     """
-    print "bumping down", bumpAttr
-    # bumping by percentage, figure out percentage and adjust attribute
-    if(bumpBy == True):
-        print " by percent"
-        bumpAmt = pm.melGlobals.get('gckFidgetBump') / 100
-        bumpAmt = pm.getAttr( bumpAttr ) - bumpAmt
-    # bumping by integer value, get value and adjust attribute
+    print str(fdgOps) + "ing entry for, ", fdgAttr
+    fdgList = ckGetList( "ckFidget_GRP.ckFidgetList" )
+    fdgSav = ckGetList( "ckFidget_GRP.ckFidgetSav" )
+    i = 0
+    for fdg in fdgList:
+        print fdg + ";" + fdgSav[i]
+        if fdg == fdgAttr:
+            break
+        i = i +1
+    if fdgOps == "save":
+        fdgSav[i] = pm.getAttr(fdgAttr)
+        newSav = ""
+        for sav in fdgSav:
+            newSav = newSav + str(sav) + ";"
+        pm.setAttr("ckFidget_GRP.ckFidgetSav", newSav)
     else:
-        print " by integer"
-        bumpAmt = pm.melGlobals.get('gckFidgetBump') * -1
-        bumpAmt = bumpAmt + pm.getAttr( bumpAttr )
-    # store adjustment
-    pm.setAttr( bumpAttr, bumpAmt)
 
-def ckFidgetBumpUp(bumpAttr, bumpBy):
-    """
-        ckFidgetBumpDwn( bumpAttr, bumpBy )
+        pm.setAttr(fdgAttr, float(fdgSav[i]))
 
-        description: adjusts single attribute up ( adds to ) by percentage or increment
-
-        inputs:
-            bumpBy: indicates percentage or increment
-
-            bumpAttr: the attribute to be adjusted
-
-        outputs: adjusts attribute named in bumpAttr
-
-    """
-    print "bumping up ", bumpAttr
-    # bumping by percentage, figure out percentage and adjust attribute
-    if(bumpBy == True):
-        print " by percent"
-        bumpAmt = pm.melGlobals.get('gckFidgetBump') / 100
-        bumpAmt = bumpAmt + pm.getAttr( bumpAttr )
-    # bumping by integer value, get value and adjust attribute
-    else:
-        print " by integer"
-        bumpAmt = pm.melGlobals.get('gckFidgetBump') + pm.getAttr( bumpAttr )
-    print bumpAmt
-    # store adjustment
-    pm.setAttr( bumpAttr, bumpAmt)
-
-def ckSaveAll():
-    """
-        ckSaveAll( )
-
-        description: iterates list of currently active attributes to store
-            all values current state
-
-
-        inputs: None
-
-        outputs: saves current state of all fidget attributes
-
-    """
-    print "restoring all default values"
-    for i in ckFidgetList:
-        ckFidgetSave(i)
-
-def ckFidgetSave(saveAttr):
-    """
-        ckFidgetSave( saveAttr )
-
-        description: stores the value listed in a single attribute
-
-        inputs:
-            saveAttr: the attribute whose value we will store
-
-        outputs: stores the value currently listed at the saveAttr attribute
-
-    """
-    print "saving entry for, ", saveAttr
-    i = ckFidgetList.index( saveAttr )
-    ckFidgetSav[i] = pm.getAttr( saveAttr )
-
-def ckZeroAll():
-    """
-        ckZeroAll()
-
-        description: sets all active fidget attributes to zero
-
-        inputs: None
-
-        outputs: resets all active fidget attributes to zero
-    """
-    print "Zeroing all default values"
-    for i in ckFidgetList:
-            pm.setAttr(i, 0)
-
-def ckRestoreAll():
-    """
-        ckRestoreAll()
-
-        description: sets all active fidget attributes to their original value
-
-        inputs: None
-
-        outputs: sets all active fidget attributes to their original value
-
-    """
-    print "restoring all default values"
-    for i in ckFidgetList:
-        ckFidgetRestore(i)
-        
-def ckFidgetRestore(restoreAttr):
-    """
-        ckFidgetRestore( restoreAttr)
-
-        description: restores single fidget attribute listed in restoreAttr
-            to its starting value
-
-        inputs:
-            restoreAttr: the attribute whose value will be reset to it's starting
-                value
-
-        outputs: restores single fidget attribute listed in restoreAttr
-            to its starting value
-
-    """
-    print "restoring saved value"
-    # need to locate the restoreVal by searching the fidget list
-    i = ckFidgetList.index( restoreAttr )
-    restoreVal = ckFidgetSav[i]
-    pm.setAttr( restoreAttr, restoreVal)
-   
 def ckFidgetWin():
     """
         ckFidgetWin()
@@ -369,15 +249,15 @@ def ckFidgetWin():
     """
     if pm.mel.eval('window -ex "fidgetMainWin" ;'):
         pm.mel.eval('deleteUI "fidgetMainWin";' )
-    fidgetWin = pm.mel.eval('window -title "attribute fidgeter" -width 150 fidgetMainWin;')
+    fidgetWin = pm.mel.eval('window -title "Carl Keifer attribute fidgeter" -width 150 fidgetMainWin;')
     pm.columnLayout( adjustableColumn=True )
     pm.frameLayout( label = "Build Fidget", borderStyle='in', collapsable=True )
     pm.rowLayout( numberOfColumns=5, columnWidth=(75,75) )
     pm.button( label = 'Add Fidget', command = 'ckAddFidget()' )
     pm.button( label = 'refresh UI', command = 'ckFidget()' )
-    pm.button( label = 'Save All', command = 'ckSaveAll()')
-    pm.button( label = 'Zero All', command = 'ckZeroAll()')
-    pm.button( label = 'Restore All', command = 'ckRestoreAll()')
+    pm.button( label = 'Save All', command = 'ckSavRstZerAll( "save" )')
+    pm.button( label = 'Zero All', command = 'ckSavRstZerAll( "zero" )')
+    pm.button( label = 'Restore All', command = 'ckSavRstZerAll( "restore" )')
     pm.setParent( '..' )
     pm.setParent( '..' )
     pm.frameLayout( label = "Master Fidget", borderStyle='in', collapsable=True )
@@ -394,19 +274,14 @@ def ckFidgetWin():
     ckList = ckGetList("ckFidget_GRP.ckFidgetList")
     for i in ckList:
         print "i, ",i
-        print "e, ",e
-        print "stored Save, ", ckFidgetSav[e]
-        currentName = i.split('.')
-        print currentName
         pm.rowLayout( numberOfColumns=6, columnWidth=(75,75) )
-        pm.attrFieldSliderGrp( l=ckFidgetList[e], min=-10.0, max=10.0, at = i )
+        pm.attrFieldSliderGrp( l=str(i), min=-10.0, max=10.0, at = i )
         pm.button( label = '<', command = 'ckFidgetBump(\"'+i+'\", "Down")' )
         pm.button( label = '>', command = 'ckFidgetBump( \"'+i+'\","Up")' )
-        pm.button( label = 'save', command = 'ckFidgetSave( \"'+i+'\")')
+        pm.button( label = 'save', command = 'ckSavRst( \"'+i+'\", "save")')
         pm.button( label = 'zero', command = 'pm.setAttr( \"'+i+'\", 0)' )
-        pm.button( label = 'restore', command = 'ckFidgetRestore( \"'+i+'\")')
+        pm.button( label = 'restore', command = 'ckSavRst( \"'+i+'\", "restore")')
         pm.setParent( '..' )
-        e += 1
     pm.setParent( '..' )
     pm.setParent( '..' )
     pm.showWindow(fidgetWin)
