@@ -13,11 +13,13 @@
          it would be great to do the same thing with QT.
 
 """
-#from PyQt4 import QtGui, QtCore, uic
 import maya.OpenMayaUI as apiUI
 import sip
 import sys
 import pymel.all as pm
+
+# I should create an initialize fidget function that can load persistent data from
+# a previous fidget session.
 
 # contains a list of  "object.attribute" that we will be working with
 ckFidgetList = []
@@ -76,13 +78,12 @@ def ckFidgetBumpAllUp(bumpBy):
     """
         ckFidgetBumpAllUp( bumpBy )
 
-        description: this function iterates the list of attributes and increments them
-           using the value bumpBy
+        description: adjusts list of attributes up ( adds to ) by percentage or increment
 
         inputs:
-            bumpBy:
+            bumpBy: indicates percentage or increment
 
-        outputs:
+        outputs: all attributes in fidget set are adjusted
 
     """
     print "bumping all up "
@@ -93,13 +94,13 @@ def ckFidgetBumpAllDwn(bumpBy):
     """
         ckFidgetBumpAllUp( bumpBy )
 
-        description: this function iterates the list of attributes and increments them
-           using the value bumpBy
+        description: adjusts list of attributes down ( subtracts from ) by
+            percentage or increment
 
         inputs:
-            bumpBy:
+            bumpBy: indicates percentage or increment
 
-        outputs:
+        outputs: all attributes in fidget set are adjusted
 
     """
     print "bumping all down"
@@ -108,63 +109,72 @@ def ckFidgetBumpAllDwn(bumpBy):
      
 def ckFidgetBumpDwn(bumpAttr, bumpBy):
     """
-        ckFidgetBumpAllUp( bumpBy )
+        ckFidgetBumpDwn( bumpAttr, bumpBy )
 
-        description: this function iterates the list of attributes and increments them
-
+        description: adjusts single attribute down ( subtracts from )
+            by percentage or increment
 
         inputs:
-            bumpBy:
+            bumpBy: indicates percentage or increment
 
-        outputs:
+            bumpAttr: the attribute to be adjusted
+
+        outputs: adjusts attribute named in bumpAttr
 
     """
     print "bumping down", bumpAttr
+    # bumping by percentage, figure out percentage and adjust attribute
     if(bumpBy == True):
         print " by percent"
         bumpAmt = pm.melGlobals.get('gckFidgetBump') / 100
         bumpAmt = pm.getAttr( bumpAttr ) - bumpAmt 
+    # bumping by integer value, get value and adjust attribute
     else:
         print " by integer"
         bumpAmt = pm.melGlobals.get('gckFidgetBump') * -1
         bumpAmt = bumpAmt + pm.getAttr( bumpAttr )
+    # store adjustment
     pm.setAttr( bumpAttr, bumpAmt)
 
 def ckFidgetBumpUp(bumpAttr, bumpBy):
     """
-        ckFidgetBumpAllUp( bumpBy )
+        ckFidgetBumpDwn( bumpAttr, bumpBy )
 
-        description: this function iterates the list of attributes and increments them
-           using the value bumpBy
+        description: adjusts single attribute up ( adds to ) by percentage or increment
 
         inputs:
-            bumpBy:
+            bumpBy: indicates percentage or increment
 
-        outputs:
+            bumpAttr: the attribute to be adjusted
+
+        outputs: adjusts attribute named in bumpAttr
 
     """
     print "bumping up ", bumpAttr 
+    # bumping by percentage, figure out percentage and adjust attribute
     if(bumpBy == True):
         print " by percent"
         bumpAmt = pm.melGlobals.get('gckFidgetBump') / 100
         bumpAmt = bumpAmt + pm.getAttr( bumpAttr )
+    # bumping by integer value, get value and adjust attribute
     else:
         print " by integer"
         bumpAmt = pm.melGlobals.get('gckFidgetBump') + pm.getAttr( bumpAttr )
     print bumpAmt
+    # store adjustment
     pm.setAttr( bumpAttr, bumpAmt)
 
 def ckSaveAll():
     """
-        ckFidgetBumpAllUp( bumpBy )
+        ckSaveAll( )
 
-        description: this function iterates the list of attributes and increments them
-           using the value bumpBy
+        description: iterates list of currently active attributes to store
+            all values current state
 
-        inputs:
-            bumpBy:
 
-        outputs:
+        inputs: None
+
+        outputs: saves current state of all fidget attributes
 
     """
     print "restoring all default values"
@@ -173,27 +183,64 @@ def ckSaveAll():
 
 def ckFidgetSave(saveAttr):
     """
-        ckFidgetBumpAllUp( bumpBy )
+        ckFidgetSave( saveAttr )
 
-        description: this function iterates the list of attributes and increments them
-           using the value bumpBy
+        description: stores the value listed in a single attribute
 
         inputs:
-            bumpBy:
+            saveAttr: the attribute whose value we will store
 
-        outputs:
+        outputs: stores the value currently listed at the saveAttr attribute
 
     """
     print "saving entry for, ", saveAttr
     i = ckFidgetList.index( saveAttr )
     ckFidgetSav[i] = pm.getAttr( saveAttr )
 
+def ckZeroAll():
+    """
+        ckZeroAll()
+
+        description: sets all active fidget attributes to zero
+
+        inputs: None
+
+        outputs: resets all active fidget attributes to zero
+    """
+    print "Zeroing all default values"
+    for i in ckFidgetList:
+            pm.setAttr(i, 0)
+
 def ckRestoreAll():
+    """
+        ckRestoreAll()
+
+        description: sets all active fidget attributes to their original value
+
+        inputs: None
+
+        outputs: sets all active fidget attributes to their original value
+
+    """
     print "restoring all default values"
     for i in ckFidgetList:
         ckFidgetRestore(i)
         
 def ckFidgetRestore(restoreAttr):
+    """
+        ckFidgetRestore( restoreAttr)
+
+        description: restores single fidget attribute listed in restoreAttr
+            to its starting value
+
+        inputs:
+            restoreAttr: the attribute whose value will be reset to it's starting
+                value
+
+        outputs: restores single fidget attribute listed in restoreAttr
+            to its starting value
+
+    """
     print "restoring saved value"
     # need to locate the restoreVal by searching the fidget list
     i = ckFidgetList.index( restoreAttr )
@@ -201,15 +248,31 @@ def ckFidgetRestore(restoreAttr):
     pm.setAttr( restoreAttr, restoreVal)
    
 def ckFidgetWin():
+    """
+        ckFidgetWin()
+
+        description: creates interface for ckFidget tool. the list is built dynamically
+            from the list of active fidgets on load, so the more fidgets you add. the
+            longer the tool window will become.
+
+        inputs:
+
+        outputs: the main fidget window.
+
+        CK - I should add some menus to this that have basic falloffs
+         for common tasks, like cloth, sss, or lighting.
+
+    """
     if pm.mel.eval('window -ex "fidgetMainWin" ;'):
         pm.mel.eval('deleteUI "fidgetMainWin";' )
-    fidgetWin = pm.mel.eval('window -title "attribute fidgeter" -width 200 fidgetMainWin;')
+    fidgetWin = pm.mel.eval('window -title "attribute fidgeter" -width 150 fidgetMainWin;')
     pm.columnLayout( adjustableColumn=True )
     pm.frameLayout( label = "Build Fidget", borderStyle='in', collapsable=True )
-    pm.rowLayout( numberOfColumns=4, columnWidth=(75,75) )
+    pm.rowLayout( numberOfColumns=5, columnWidth=(75,75) )
     pm.button( label = 'Add Fidget', command = 'ckAddFidget()' )
     pm.button( label = 'refresh UI', command = 'ckFidget()' )
     pm.button( label = 'Save All', command = 'ckSaveAll()')
+    pm.button( label = 'Zero All', command = 'ckZeroAll()')
     pm.button( label = 'Restore All', command = 'ckRestoreAll()')
     pm.setParent( '..' )
     pm.setParent( '..' )
@@ -230,9 +293,8 @@ def ckFidgetWin():
         print "stored Save, ", ckFidgetSav[e]
         currentName = i.split('.')
         print currentName
-        pm.rowLayout( numberOfColumns=7, columnWidth=(75,75) )
-        pm.text( label = currentName[0])
-        pm.attrFieldSliderGrp( min=-10.0, max=10.0, at = i )
+        pm.rowLayout( numberOfColumns=6, columnWidth=(75,75) )
+        pm.attrFieldSliderGrp( l=ckFidgetList[e], min=-10.0, max=10.0, at = i )
         pm.button( label = '<', command = 'ckFidgetBumpDwn(\"'+i+'\", bumpBy)' )
         pm.button( label = '>', command = 'ckFidgetBumpUp( \"'+i+'\", bumpBy)' )
         pm.button( label = 'save', command = 'ckFidgetSave( \"'+i+'\")')
