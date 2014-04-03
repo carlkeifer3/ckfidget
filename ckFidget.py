@@ -65,6 +65,7 @@ def ckFidgetInit():
                 i = i + 1
             print ckFidgetSav
             print ckFidgetPrim
+            pm.setAttr("ckFidget.bumpBy", False)
     except:
         print "data not found initializing new ckFidget instance"
         pm.group(empty=True, name="ckFidget_GRP")
@@ -341,7 +342,7 @@ def ckFidgetWin():
     pm.mel.eval( 'floatField -value $gckFidgetBump -min 0 -changeCommand "$gckFidgetBump = `floatField -q -v  masterBump`"  masterBump;' )
     pm.button( label = '<', command = 'ckFidgetBumpAllDwn( pm.getAttr("ckFidget_GRP.bumpBy"))')
     pm.button( label = '>', command = 'ckFidgetBumpAllUp( pm.getAttr("ckFidget_GRP.bumpBy"))')
-    pm.radioButtonGrp( label='Bump by:', labelArray2=['0.0', '%'], numberOfRadioButtons=2, sl=2, on1= 'pm.setAttr("ckFidget_GRP.bumpBy", False)', on2= 'pm.setAttr("ckFidget_GRP.bumpBy", False)')
+    pm.radioButtonGrp( label='Bump by:', labelArray2=['0.0', '%'], numberOfRadioButtons=2, sl=2, on1= 'pm.setAttr("ckFidget_GRP.bumpBy", False)', on2= 'pm.setAttr("ckFidget_GRP.bumpBy", True)')
     pm.setParent( '..' )
     pm.setParent( '..' )
     pm.frameLayout( label = "Fidget Attributes", borderStyle='in', collapsable=True )
@@ -365,4 +366,3 @@ def ckFidgetWin():
     pm.setParent( '..' )
     pm.showWindow(fidgetWin)
     # I should now connect the master fidget value to the fidget group
-    # also the bump by: value on reset is always % it should get the start from the fidget group
