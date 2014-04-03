@@ -65,7 +65,7 @@ def ckFidgetInit():
                 i = i + 1
             print ckFidgetSav
             print ckFidgetPrim
-            pm.setAttr("ckFidget.bumpBy", False)
+            pm.setAttr("ckFidget_GRP.bumpBy", False)
     except:
         print "data not found initializing new ckFidget instance"
         pm.group(empty=True, name="ckFidget_GRP")
