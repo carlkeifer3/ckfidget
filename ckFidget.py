@@ -31,6 +31,41 @@ ckFidgetPrim = []
 pm.melGlobals.initVar( 'float','gckFidgetBump')
 pm.melGlobals['gckFidgetBump'] = 0.1
 
+def ckGetList( fdgAttr ):
+    """
+        ckGetList( fdgAttr )
+
+        description: returns list from the fidget data
+            assumes list always ends with ;
+
+        inputs:
+            fdgAttr: the object.attribute that we will be looking for data in
+
+        outputs: returns list of data that lives in fdgAttr
+    """
+    ckList = pm.getAttr(fdgAttr)
+    ckList =  ckList.split(";")
+    ckList.pop()
+    return ckList
+
+def ckAddToList(fdgAttr, fdgVal):
+    """
+        ckAddToList(fdgAttr, fdgVal):
+
+        description: adds value in fdgVal to the list located at fdgAttr
+            assumes the list always ends with ;
+
+        inputs:
+            fdgAttr: the object.attribute that we will be looking for data in
+
+            fdgVal: the data we will be adding to the list
+
+        outputs: None
+    """
+    ckAttr = pm.getAttr(fdgAttr)
+    ckAttr = ckAttr + str(fdgVal) + ";"
+    pm.setAttr(fdgAttr, ckAttr )
+
 def ckFidgetInit():
     """
         ckFidgetInit()
@@ -93,10 +128,10 @@ def ckAddFidget():
 
         inputs: None
 
-        outputs: rebuilds the interface including the added attribute
+        outputs: None
 
         CK - this would be a great place to add data to a persistent node in the
-        maya file
+        maya file(working)
     """
 
     # fist we are collecting the selected attribute
@@ -114,17 +149,11 @@ def ckAddFidget():
 
     # given that has worked  we will add the data to the lists
     ckFidgetList.append( newAttr )
-    ckList = pm.getAttr("ckFidget_GRP.ckFidgetList")
-    ckList = ckList + newAttr + ";"
-    pm.setAttr("ckFidget_GRP.ckFidgetList", ckList )
+    ckAddToList( "ckFidget_GRP.ckFidgetList", newAttr)
     ckFidgetSav.append( newVal )
-    ckSav = pm.getAttr("ckFidget_GRP.ckFidgetSav")
-    ckSav = ckSav + str(newVal) + ";"
-    pm.setAttr("ckFidget_GRP.ckFidgetSav", ckSav )
+    ckAddToList( "ckFidget_GRP.ckFidgeSav", newVal)
     ckFidgetPrim.append( newVal )
-    ckPrim = pm.getAttr("ckFidget_GRP.ckFidgetPrim")
-    ckPrim = ckPrim + str(newVal) + ";"
-    pm.setAttr("ckFidget_GRP.ckFidgetPrim", ckPrim )
+    ckAddToList( "ckFidget_GRP.ckFidgePrim", newVal)
 
     # printing the saved data as a check
 
@@ -134,40 +163,54 @@ def ckAddFidget():
 
     # now issue the call to rebuild the interface
     ckFidgetWin()
-    
-def ckFidgetBumpAllUp(bumpBy):
-    """
-        ckFidgetBumpAllUp( bumpBy )
 
-        description: adjusts list of attributes up ( adds to ) by percentage or increment
+def ckFidgetBumpAll(bumpDir):
+    """
+        ckFidgetBumpAll(bumpDir)
+
+        description: evaluates list of fidgets
 
         inputs:
-            bumpBy: indicates percentage or increment
+            bumpDir: determines if the operation is add or subtract
 
-        outputs: all attributes in fidget set are adjusted
-
+        outputs: None
     """
-    print "bumping all up "
-    for i in ckFidgetList: 
-        ckFidgetBumpUp( i, bumpBy)
-        
-def ckFidgetBumpAllDwn(bumpBy):
-    """
-        ckFidgetBumpAllUp( bumpBy )
+    print "bumping all fidgets " + str(bumpDir)
+    ckList = ckGetList("ckFidget_GRP.ckFidgetList")
+    for fdg in ckList:
+        ckFidgetBump(fdg, bumpDir)
 
-        description: adjusts list of attributes down ( subtracts from ) by
-            percentage or increment
+def ckFidgetBump( fdgAttr, bumpDir):
+    """
+        ckFidgetBump( fdgAttr, bumpDir )
+
+        description: evaluates fidget for given attribute, adds or subtracts
+            by percent or increment
 
         inputs:
-            bumpBy: indicates percentage or increment
+            fdgAttr: the object.attribute that we will be looking for data in
 
-        outputs: all attributes in fidget set are adjusted
+            bumpDir: determines if the operation is add or subtract
+
+        outputs: None
 
     """
-    print "bumping all down"
-    for i in ckFidgetList:
-        ckFidgetBumpDwn( i, bumpBy)
-     
+    print "bumping " + str(bumpDir)+ " " + str(fdgAttr)
+    bumpBy = pm.getAttr("ckFidget_GRP.bumpBy")
+    fdgVal = pm.getAttr( fdgAttr )
+    bumpAmt = pm.melGlobals.get('gckFidgetBump')
+    # bumping by percentage, figure out percentage and adjust fdgVal attribute
+    if(bumpBy == True):
+        print " by percent"
+        bumpAmt = bumpAmt / 100
+        bumpAmt = fdgVal * bumpAmt
+    if bumpDir == "Up":
+        fdgVal = fdgVal + bumpAmt
+    else:
+        fdgVal = fdgVal - bumpAmt
+    # store adjustment
+    pm.setAttr( fdgAttr, fdgVal)
+
 def ckFidgetBumpDwn(bumpAttr, bumpBy):
     """
         ckFidgetBumpDwn( bumpAttr, bumpBy )
@@ -188,7 +231,7 @@ def ckFidgetBumpDwn(bumpAttr, bumpBy):
     if(bumpBy == True):
         print " by percent"
         bumpAmt = pm.melGlobals.get('gckFidgetBump') / 100
-        bumpAmt = pm.getAttr( bumpAttr ) - bumpAmt 
+        bumpAmt = pm.getAttr( bumpAttr ) - bumpAmt
     # bumping by integer value, get value and adjust attribute
     else:
         print " by integer"
@@ -211,7 +254,7 @@ def ckFidgetBumpUp(bumpAttr, bumpBy):
         outputs: adjusts attribute named in bumpAttr
 
     """
-    print "bumping up ", bumpAttr 
+    print "bumping up ", bumpAttr
     # bumping by percentage, figure out percentage and adjust attribute
     if(bumpBy == True):
         print " by percent"
@@ -340,14 +383,16 @@ def ckFidgetWin():
     pm.frameLayout( label = "Master Fidget", borderStyle='in', collapsable=True )
     pm.rowLayout( numberOfColumns=6, columnWidth=(75,75) )
     pm.mel.eval( 'floatField -value $gckFidgetBump -min 0 -changeCommand "$gckFidgetBump = `floatField -q -v  masterBump`"  masterBump;' )
-    pm.button( label = '<', command = 'ckFidgetBumpAllDwn( pm.getAttr("ckFidget_GRP.bumpBy"))')
-    pm.button( label = '>', command = 'ckFidgetBumpAllUp( pm.getAttr("ckFidget_GRP.bumpBy"))')
+    pm.button( label = '<', command = 'ckFidgetBumpAll("Down")')
+    pm.button( label = '>', command = 'ckFidgetBumpAll("Up")')
     pm.radioButtonGrp( label='Bump by:', labelArray2=['0.0', '%'], numberOfRadioButtons=2, sl=1, on1= 'pm.setAttr("ckFidget_GRP.bumpBy", False)', on2= 'pm.setAttr("ckFidget_GRP.bumpBy", True)')
     pm.setParent( '..' )
     pm.setParent( '..' )
     pm.frameLayout( label = "Fidget Attributes", borderStyle='in', collapsable=True )
     e = 0
-    for i in ckFidgetList:
+    # this iterates the list of fidgets we have
+    ckList = ckGetList("ckFidget_GRP.ckFidgetList")
+    for i in ckList:
         print "i, ",i
         print "e, ",e
         print "stored Save, ", ckFidgetSav[e]
@@ -355,8 +400,8 @@ def ckFidgetWin():
         print currentName
         pm.rowLayout( numberOfColumns=6, columnWidth=(75,75) )
         pm.attrFieldSliderGrp( l=ckFidgetList[e], min=-10.0, max=10.0, at = i )
-        pm.button( label = '<', command = 'ckFidgetBumpDwn(\"'+i+'\", pm.getAttr("ckFidget_GRP.bumpBy"))' )
-        pm.button( label = '>', command = 'ckFidgetBumpUp( \"'+i+'\", pm.getAttr("ckFidget_GRP.bumpBy"))' )
+        pm.button( label = '<', command = 'ckFidgetBump(\"'+i+'\", "Down")' )
+        pm.button( label = '>', command = 'ckFidgetBump( \"'+i+'\","Up")' )
         pm.button( label = 'save', command = 'ckFidgetSave( \"'+i+'\")')
         pm.button( label = 'zero', command = 'pm.setAttr( \"'+i+'\", 0)' )
         pm.button( label = 'restore', command = 'ckFidgetRestore( \"'+i+'\")')
