@@ -4,11 +4,10 @@
     written by: Carl Keifer
 
     This tool allows users to modify sets of data while tracking revisions. it can
-    operate on a set of data channels by increment or percent.
+    operate on a set of data channels by increment or percent. fidget data is stored
+    in a group node so that it persists from save to save.
 
-    CK - I need to go through this and clean up the comments first
-         then I need to get it working cleanly once and for all.
-         extension of the tool to include storage of revisions.
+    CK - then I need to get it working cleanly once and for all.
          currently the tool only works for mel based windows.
          it would be great to do the same thing with QT.
 
@@ -31,6 +30,58 @@ ckFidgetPrim = []
 # this is the amount by default that will be affecting the attributes
 pm.melGlobals.initVar( 'float','gckFidgetBump')
 pm.melGlobals['gckFidgetBump'] = 0.1
+
+def ckFidgetInit():
+    """
+        ckFidgetInit()
+
+        description: this function should initialize ckFidget
+            it should check for existing persistent data
+            and create a new node if none exists
+            then it creates the interface
+
+        inputs: None
+
+        outputs: initializes ckFidget
+    """
+    try:
+        print "checking for persistent fidget data"
+        pm.select("ckFidget_GRP")
+        isFidget = pm.getAttr("ckFidget_GRP.ckIsFidget")
+        if isFidget == True:
+            print "Data Found!"
+            ckList = pm.getAttr("ckFidget_GRP.ckFidgetList")
+            ckList = ckList.split(";")
+            ckSav = pm.getAttr("ckFidget_GRP.ckFidgetSav")
+            ckSav = ckSav.split(";")
+            ckPrim = pm.getAttr("ckFidget_GRP.ckFidgetPrim")
+            ckPrim = ckPrim.split(";")
+            i = 0
+            while i < len(ckList)-1:
+                print "appending ckFidgetList with " + str(ckList[i])
+                ckFidgetList.append( ckList[i] )
+                ckFidgetSav.append( float(ckSav[i]) )
+                ckFidgetPrim.append( float(ckPrim[i]) )
+                i = i + 1
+            print ckFidgetSav
+            print ckFidgetPrim
+    except:
+        print "data not found initializing new ckFidget instance"
+        pm.group(empty=True, name="ckFidget_GRP")
+        pm.addAttr( longName="ckIsFidget", attributeType='bool', keyable=False )
+        pm.setAttr("ckFidget_GRP.ckIsFidget", True)
+        pm.addAttr( longName="bumpBy", attributeType='bool', keyable=False )
+        pm.setAttr("ckFidget_GRP.bumpBy", False)
+        pm.addAttr( longName="ckFidgetBump", attributeType='float', keyable=False, defaultValue=0.1 )
+
+        print "here is where I should ask about starting a new fidget"
+        pm.addAttr( longName="ckFidgetList", dataType='string', keyable=False )
+        pm.addAttr( longName="ckFidgetSav", dataType='string', keyable=False )
+        pm.addAttr( longName="ckFidgetPrim", dataType='string', keyable=False )
+        pm.setAttr( "ckFidget_GRP.ckFidgetList","" )
+        pm.setAttr( "ckFidget_GRP.ckFidgetSav","" )
+        pm.setAttr( "ckFidget_GRP.ckFidgetPrim","" )
+    ckFidgetWin()
 
 def ckAddFidget():
     """
@@ -62,8 +113,17 @@ def ckAddFidget():
 
     # given that has worked  we will add the data to the lists
     ckFidgetList.append( newAttr )
+    ckList = pm.getAttr("ckFidget_GRP.ckFidgetList")
+    ckList = ckList + newAttr + ";"
+    pm.setAttr("ckFidget_GRP.ckFidgetList", ckList )
     ckFidgetSav.append( newVal )
+    ckSav = pm.getAttr("ckFidget_GRP.ckFidgetSav")
+    ckSav = ckSav + str(newVal) + ";"
+    pm.setAttr("ckFidget_GRP.ckFidgetSav", ckSav )
     ckFidgetPrim.append( newVal )
+    ckPrim = pm.getAttr("ckFidget_GRP.ckFidgetPrim")
+    ckPrim = ckPrim + str(newVal) + ";"
+    pm.setAttr("ckFidget_GRP.ckFidgetPrim", ckPrim )
 
     # printing the saved data as a check
 
@@ -279,10 +339,9 @@ def ckFidgetWin():
     pm.frameLayout( label = "Master Fidget", borderStyle='in', collapsable=True )
     pm.rowLayout( numberOfColumns=6, columnWidth=(75,75) )
     pm.mel.eval( 'floatField -value $gckFidgetBump -min 0 -changeCommand "$gckFidgetBump = `floatField -q -v  masterBump`"  masterBump;' )
-    pm.button( label = '<', command = 'ckFidgetBumpAllDwn( bumpBy)')
-    pm.button( label = '>', command = 'ckFidgetBumpAllUp( bumpBy)')
-    bumpBy = False
-    pm.radioButtonGrp( label='Bump by:', labelArray2=['0.0', '%'], numberOfRadioButtons=2, sl=2, on1= 'bumpBy=False', on2= 'bumpBy=True')
+    pm.button( label = '<', command = 'ckFidgetBumpAllDwn( pm.getAttr("ckFidget_GRP.bumpBy"))')
+    pm.button( label = '>', command = 'ckFidgetBumpAllUp( pm.getAttr("ckFidget_GRP.bumpBy"))')
+    pm.radioButtonGrp( label='Bump by:', labelArray2=['0.0', '%'], numberOfRadioButtons=2, sl=2, on1= 'pm.setAttr("ckFidget_GRP.bumpBy", False)', on2= 'pm.setAttr("ckFidget_GRP.bumpBy", False)')
     pm.setParent( '..' )
     pm.setParent( '..' )
     pm.frameLayout( label = "Fidget Attributes", borderStyle='in', collapsable=True )
@@ -295,8 +354,8 @@ def ckFidgetWin():
         print currentName
         pm.rowLayout( numberOfColumns=6, columnWidth=(75,75) )
         pm.attrFieldSliderGrp( l=ckFidgetList[e], min=-10.0, max=10.0, at = i )
-        pm.button( label = '<', command = 'ckFidgetBumpDwn(\"'+i+'\", bumpBy)' )
-        pm.button( label = '>', command = 'ckFidgetBumpUp( \"'+i+'\", bumpBy)' )
+        pm.button( label = '<', command = 'ckFidgetBumpDwn(\"'+i+'\", pm.getAttr("ckFidget_GRP.bumpBy"))' )
+        pm.button( label = '>', command = 'ckFidgetBumpUp( \"'+i+'\", pm.getAttr("ckFidget_GRP.bumpBy"))' )
         pm.button( label = 'save', command = 'ckFidgetSave( \"'+i+'\")')
         pm.button( label = 'zero', command = 'pm.setAttr( \"'+i+'\", 0)' )
         pm.button( label = 'restore', command = 'ckFidgetRestore( \"'+i+'\")')
@@ -305,4 +364,5 @@ def ckFidgetWin():
     pm.setParent( '..' )
     pm.setParent( '..' )
     pm.showWindow(fidgetWin)
-
+    # I should now connect the master fidget value to the fidget group
+    # also the bump by: value on reset is always % it should get the start from the fidget group
