@@ -7,9 +7,9 @@
     operate on a set of data channels by increment or percent. fidget data is stored
     in a group node so that it persists from save to save.
 
-    CK - then I need to get it working cleanly once and for all.
-         currently the tool only works for mel based windows.
+    CK - currently the tool only works for mel based windows.
          it would be great to do the same thing with QT.
+         I'm going to add multiple versions of save.
 
 """
 import maya.OpenMayaUI as apiUI
@@ -87,6 +87,7 @@ def ckFidgetInit():
         pm.addAttr( longName="bumpBy", attributeType='bool', keyable=False )
         pm.setAttr("ckFidget_GRP.bumpBy", False)
         pm.addAttr( longName="ckFidgetBump", attributeType='float', keyable=False, defaultValue=0.1 )
+        pm.addAttr( longName="numSaves", attributeType="short", keyable=False, defaultValue=0 )
 
         print "here is where I should ask about starting a new fidget"
         # should pop up a dialog and ask the name of the new fidget
@@ -94,6 +95,7 @@ def ckFidgetInit():
         pm.addAttr( longName="ckFidgetSav", dataType='string', keyable=False )
         pm.setAttr( "ckFidget_GRP.ckFidgetList","" )
         pm.setAttr( "ckFidget_GRP.ckFidgetSav","" )
+        pm.select( clear = True )
     ckFidgetWin()
 
 def ckAddFidget():
@@ -124,9 +126,18 @@ def ckAddFidget():
     newVal = pm.getAttr( newAttr )
     print newVal
 
+    pm.select( clear = True )
     # given that has worked  we will add the data to the lists
     ckAddToList( "ckFidget_GRP.ckFidgetList", newAttr)
     ckAddToList( "ckFidget_GRP.ckFidgetSav", newVal)
+    pm.group(name = str(newAttr+"_SAV0" ))
+    pm.addAttr( longName="fdgSave", dataType="string", keyable=False)
+    newAttr = newAttr.split(".")
+    pm.setAttr( str(newAttr[0]+"_"+newAttr[1]+"_SAV0.fdgSave"), str(newVal))
+    pm.select( "ckFidget_GRP")
+    pm.parent( str(newAttr[0]+"_"+newAttr[1]+"_SAV0") )
+    pm.select( clear = True )
+    pm.select(newAttr[0])
     # now issue the call to rebuild the interface
     ckFidgetWin()
 
@@ -213,23 +224,14 @@ def ckSavRst(fdgAttr, fdgOps ):
 
     """
     print str(fdgOps) + "ing entry for, ", fdgAttr
-    fdgList = ckGetList( "ckFidget_GRP.ckFidgetList" )
-    fdgSav = ckGetList( "ckFidget_GRP.ckFidgetSav" )
-    i = 0
-    for fdg in fdgList:
-        print fdg + ";" + fdgSav[i]
-        if fdg == fdgAttr:
-            break
-        i = i +1
-    if fdgOps == "save":
-        fdgSav[i] = pm.getAttr(fdgAttr)
-        newSav = ""
-        for sav in fdgSav:
-            newSav = newSav + str(sav) + ";"
-        pm.setAttr("ckFidget_GRP.ckFidgetSav", newSav)
-    else:
+    fdgGrp = fdgAttr.split(".")
 
-        pm.setAttr(fdgAttr, float(fdgSav[i]))
+    if fdgOps == "save":
+        fdgSav = pm.getAttr(fdgAttr)
+        pm.setAttr(str("ckFidget_GRP|"+fdgGrp[0]+"_"+fdgGrp[1]+"_SAV0.fdgSave"), str(fdgSav) )
+    else:
+        fdgSav = pm.getAttr(str("ckFidget_GRP|"+fdgGrp[0]+"_"+fdgGrp[1]+"_SAV0.fdgSave"))
+        pm.setAttr(fdgAttr, float(fdgSav))
 
 def ckFidgetWin():
     """
